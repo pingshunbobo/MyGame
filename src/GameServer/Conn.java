@@ -87,35 +87,6 @@ public class Conn {
 			e.printStackTrace();
 		}
 	}
-    
-	public void DataProcess(){
-		Server.process_count ++;
-		//如果数据未满，返回继续读！
-		if(bufin.position() < 6){
-			this.ReadRegister();
-			return;
-		} else if(bufin.position() >= 6){
-			this.DataEcho();
-		} else{
-			this.DataError();
-		}
-		this.WriteRegister();
-	}
-	
-	//简单把输入复制到输出。
-	private void DataEcho(){
-		ByteBuffer buf = this.bufin;
-		buf.flip();				//将buf内容做屏幕输出。
-		while(buf.hasRemaining()){
-			this.bufout.put(buf.get());
-		}
-		buf.clear();
-	}
-	
-	private void DataError(){
-		this.bufin.clear();
-		this.bufout.put("Error\r\n".getBytes());
-	}
 	
 	public void ReadRegister(){
 		try{

@@ -26,7 +26,7 @@ public class ServerThread implements Runnable
 			//正式处理客户请求。
 			if(connecter != null)
 				synchronized(connecter){
-						connecter.DataProcess();
+					Work.DataProcess(connecter);
 				}
 		}
 	}
