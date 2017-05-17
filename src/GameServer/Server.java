@@ -23,6 +23,9 @@ import java.util.Set;
 
 public class Server {
 	
+	static int debug = 1;
+	static int port = 30000;
+	
 	//TCP 多路监听连接
 	static Selector selector;
     static ServerSocket listensocket = null;
@@ -50,14 +53,14 @@ public class Server {
 	        
     		//绑定通道到指定端口 
             listensocket = server.socket();
-            InetSocketAddress address = new InetSocketAddress(30000);
+            InetSocketAddress address = new InetSocketAddress(port);
         	listensocket.bind(address);
         	
             //向Selector中注册监听事件
 			server.register(selector, SelectionKey.OP_ACCEPT);
+			System.out.println("开始监听端口：" + port + "......");
 		} catch (IOException e) {
 			System.out.println("Create bind port error!");
-			e.printStackTrace();
 		}
         
         //进入io循环服务，不再返回。
@@ -78,7 +81,6 @@ public class Server {
 			
 			while(keyIterator.hasNext()) {
 				SelectionKey key = keyIterator.next();
-				System.out.println("new event!");
 				
 				if(key.isAcceptable()) {
 					Socket sock = SocketAccept(listensocket);
@@ -86,14 +88,21 @@ public class Server {
 				    Conn newConn = new Conn(sock);
 				    Connmap.put(sockstr, newConn);
 				    
+				    ReadRegister(newConn.sc);
+				    
+				    Debug_out("New connect!");
+				    
 				} else if (key.isWritable()) {
-					FindConn(key).ConnWrite();
+					Debug_out("New Write event!");
+					WriteProcess(FindConn(key));
 					
 				} else if (key.isReadable()) {
-					FindConn(key).ConnRead();
+					Debug_out("New Read event!");
+					
+					ReadProcess(FindConn(key));
 					
 				} else{
-					//LOG.error();
+					Debug_out("Unknow event happend!");
 				}
 				keyIterator.remove();
 			}
@@ -120,13 +129,25 @@ public class Server {
 		return sock;
 	}
     
-    static  void NoticeProcesser(Conn Conn){
+	//创建线程池。
+	private static void ThreadPool() {
+		Thread WorkThread = null;
+		// 开启8个ServerThread线程为该客户端服务。
+        for(int i = 0; i < 8; i++) {
+			WorkThread = new Thread(new ServerThread(i));
+    		WorkThread.start();
+        }
+	}
+	
+    static void NoticeWorkThread(Conn Conn){
+    	Debug_out("Notice event!");
     	//加入处理队列,交由线程池处理。
 		synchronized(ConnProcessQueue){
 			ConnProcessQueue.offer(Conn);
 			ConnProcessQueue.notify();
 		}
     }
+    
     //ͨ通过SelectionKey找到对应的Conn全局表数据。
     private static Conn FindConn(SelectionKey key){
     	SocketAddress sa = null;
@@ -138,12 +159,79 @@ public class Server {
     	return Connmap.get(sa.toString());
     }
     
-	private static void ThreadPool() {
-		Thread WorkThread = null;
-		// 开启8个ServerThread线程为该客户端服务。
-        for(int i = 0; i < 8; i++) {
-			WorkThread = new Thread(new ServerThread(i));
-    		WorkThread.start();
-        }
+    
+    //处理读事件。
+    private static void ReadProcess(Conn ioconn){
+    	int ret = ioconn.ConnRead();
+		//判断返回值，注册事件
+		if( ret > 0 ){
+			//处理过程中，不接收io事件。
+			ClearRegister(ioconn.sc);
+			NoticeWorkThread(ioconn);
+		} else if(ret < 0){
+			Debug_out("Read error, Close socket!");
+			CloseProcess(ioconn);
+		}else{
+			//可能是缓冲区满。
+			Debug_out("buf reamain: " + ioconn.bufin.remaining());
+		}
+    }
+    
+    //处理写事件。
+    private static void WriteProcess(Conn ioconn){
+		int ret = ioconn.ConnWrite();
+		if(ret < 0)
+			CloseProcess(ioconn);
+		else
+			ReadRegister(ioconn.sc);
+    }
+    
+    //conn关闭事件。
+    private static void CloseProcess(Conn ioconn){
+    	/*
+    	 * 这里应该添加业务层下线登记。
+    	 * 
+    	 * */
+    	
+		CancelRegister(ioconn.sc);
+		ioconn.ConnClose();
+    }
+    
+	public static void ReadRegister(SocketChannel sc){
+		try{
+			if(sc.isConnected())
+				sc.register(selector, SelectionKey.OP_READ);
+		}
+		catch(IOException e){
+			e.printStackTrace();
+		}
+	}
+	
+	public static void WriteRegister(SocketChannel sc){
+		try{
+			if(!sc.socket().isClosed())
+				sc.register(selector, SelectionKey.OP_WRITE);
+		}
+		catch(IOException e){
+			e.printStackTrace();
+		}
+	}
+	public static void ClearRegister(SocketChannel sc){
+		try{
+			if(!sc.socket().isClosed())
+				sc.register(selector, 0);
+		}
+		catch(IOException e){
+			e.printStackTrace();
+		};
+	}
+	public static void CancelRegister(SocketChannel sc){
+		if(sc.isOpen())
+			sc.keyFor(Server.selector).cancel();
+	}
+	
+	public static void Debug_out(String str){
+		if(Server.debug > 0)
+			System.out.println(str);
 	}
 }

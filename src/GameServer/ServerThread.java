@@ -11,7 +11,7 @@ public class ServerThread implements Runnable
 	
 	public void run()
 	{
-		Conn connecter = null;
+		Conn conn = null;
 		while(true){
 			synchronized(Server.ConnProcessQueue){
 				if( 0 == Server.ConnProcessQueue.size() )
@@ -21,13 +21,11 @@ public class ServerThread implements Runnable
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 				}
-				connecter = Server.ConnProcessQueue.poll();
+				conn = Server.ConnProcessQueue.poll();
 			}
 			//正式处理客户请求。
-			if(connecter != null)
-				synchronized(connecter){
-					Work.DataProcess(connecter);
-				}
+			if(conn != null)
+				Work.DataProcess(conn);
 		}
 	}
 	

@@ -9,16 +9,18 @@ import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
 public class Conn {
+	
 	SocketChannel sc = null;
 	SocketAddress sa = null;
 	ByteBuffer bufin = null;
 	ByteBuffer bufout = null;
 	ConnStatus status = null;
 
+	GameUser user = null;
+	
 	//初始化一个连接结构。
 	public Conn(Socket sock) {
 		sa = sock.getRemoteSocketAddress();
@@ -30,7 +32,6 @@ public class Conn {
     	try {
         	this.sc = sock.getChannel();
 			this.sc.configureBlocking(false);
-		    this.ReadRegister();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -39,38 +40,29 @@ public class Conn {
 	
 	//读取数据到用户空间。
 	int ConnRead(){
-    	int ReadBytes = 0;
+    	int ReadBytes = -1;
 		ByteBuffer buf = this.bufin;
 		
 		try {
 			ReadBytes = this.sc.read(buf);
 		} catch (IOException e) {
-			//e.printStackTrace();
+			Server.Debug_out(e.toString());
 		}
-		//判断返回值，注册事件
-		if( ReadBytes > 0 ){
-			this.NoRegister();
-			Server.NoticeProcesser(this);
-		} else if(ReadBytes < 0){
-			this.ConnClose();
-		}else{
-			//Debug_out("buf reamain: " + this.bufin.remaining());
-		}
+		
 		return ReadBytes;
     }
 	
 	//输出数据到socket。
     int ConnWrite(){
-    	int bytewrites = 0;
+    	int bytewrites = -1;
     	
     	ByteBuffer buf = this.bufout;
     	buf.flip();
     	if(this.sc.isOpen()){
     		try {
     			bytewrites = this.sc.write(buf);
-    			this.ReadRegister();
     		} catch (IOException e) {
-    			this.ConnClose();
+    			Server.Debug_out(e.toString());
     		}
     	}
 		buf.clear();
@@ -79,46 +71,13 @@ public class Conn {
     
     //关闭Socket连接。
     void ConnClose() {
+    	
 		try {
-			this.CancelRegister();
 			this.sc.close();
 			Server.Connmap.remove(this.sa.toString());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-	}
-	
-	public void ReadRegister(){
-		try{
-			if(this.sc.isConnected())
-				this.sc.register(Server.selector, SelectionKey.OP_READ);
-		}
-		catch(IOException e){
-			e.printStackTrace();
-		}
-	}
-	
-	public void WriteRegister(){
-		try{
-			if(!this.sc.socket().isClosed())
-				this.sc.register(Server.selector, SelectionKey.OP_WRITE);
-		}
-		catch(IOException e){
-			e.printStackTrace();
-		}
-	}
-	public void NoRegister(){
-		try{
-			if(!this.sc.socket().isClosed())
-				this.sc.register(Server.selector, 0);
-		}
-		catch(IOException e){
-			e.printStackTrace();
-		};
-	}
-	public void CancelRegister(){
-		if(this.sc.isOpen())
-			this.sc.keyFor(Server.selector).cancel();
 	}
 	
 	private enum ConnStatus{
