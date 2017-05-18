@@ -3,14 +3,14 @@ package GameServer;
 import java.util.UUID;
 
 public class GameUser {
-	UUID UserId;
+	UUID Token;
 	Conn conn;
 	
 	public GameUser(){
-		UserId = UUID.randomUUID();
+		Token = UUID.randomUUID();
 	}
 	
-	public void EchoId(){
-		System.out.println("User id：" + UserId);
+	public void GetToken(){
+		System.out.println("User id：" + Token);
 	}
 }

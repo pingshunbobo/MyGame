@@ -19,6 +19,7 @@ public class Conn {
 	ByteBuffer bufout = null;
 	ConnStatus status = null;
 
+	Message msg = null;
 	GameUser user = null;
 	
 	//初始化一个连接结构。

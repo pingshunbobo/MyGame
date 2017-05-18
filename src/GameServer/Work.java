@@ -1,4 +1,5 @@
 package GameServer;
+import java.io.ByteArrayInputStream;
 import java.nio.ByteBuffer;
 
 /*
@@ -11,11 +12,18 @@ public class Work {
 
 	public static void DataProcess(Conn conn){
 		Message msg = GetMessage(conn);
-		//如果数据未满，返回继续读！
-		if(msg == null){
-			System.out.println("read continue!");
-			Server.ReadRegister(conn.sc);
+		//如果数据头不完整。
+		if(conn.bufin.position() < 8){
+			DataContinue(conn);
 			return;
+		}
+		
+		//如果数据不完整，返回继续读！
+		if(msg.type == 0x98){
+			DataContinue(conn);
+			return;
+		} else if(msg.type == 0x99){
+			DataError(conn);
 		} else if(msg.type == 0x00){
 			DataEcho(conn);
 		} else if(msg.type == 0x01){
@@ -32,9 +40,14 @@ public class Work {
 	}
 	
 	private static void UserLogin(Conn conn){
-		if(Login.check(GetMessage(conn)) == true)
+		String RetStr = "Login Falure!\r\n";
+		if(Login.check(GetMessage(conn)) == true){
 			conn.user = new GameUser();
-		conn.user.EchoId();
+			conn.user.GetToken();
+			RetStr = "Login Sucess!\r\n";
+		}
+		conn.bufout.put(RetStr.getBytes());
+		conn.bufin.clear();
 	}
 	
 	//简单把输入复制到输出。
@@ -44,9 +57,13 @@ public class Work {
 		while(buf.hasRemaining()){
 			byte b = buf.get();
 			conn.bufout.put(b);
-			System.out.print((char)b);
 		}
 		buf.clear();
+	}
+	
+	private static void DataContinue(Conn conn){
+		System.out.println("read continue!");
+		Server.ReadRegister(conn.sc);
 	}
 	
 	private static void DataError(Conn conn){
@@ -55,17 +72,33 @@ public class Work {
 	}
 	
 	private static Message GetMessage(Conn conn){
-		if(conn.bufin.position() < 8)
-			return null;
-		Message msg = new Message();
-		ByteBuffer dupeBuffer = conn.bufin.duplicate();
-		msg.iden = dupeBuffer.getChar();
-		msg.type = dupeBuffer.getChar();
-		msg.length = dupeBuffer.getInt();
-		if(msg.iden != 0x2497){
-			System.out.print((int)msg.iden);
-			return null;
+		
+		ByteBuffer Buffer = conn.bufin;
+		Buffer.flip();
+		
+		Message msg = null;
+		if(conn.msg == null){
+			msg = new Message();
+			//首先判断标识符。
+			msg.iden = Buffer.getChar();
+			if(msg.iden != 0x2497){
+				msg.type = 0x99;
+			}
+			msg.type = Buffer.getChar();
+			msg.length = Buffer.getInt();
+			
+		}else{
+			msg = conn.msg;
+	
+			for(int i=0; i<msg.length; i++){
+				if(Buffer.hasRemaining())
+					msg.content[i] = Buffer.get();
+				else{
+					return null;
+				}
+			}
 		}
+		conn.msg = msg;
 		return msg;
 	}
 }

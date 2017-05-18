@@ -31,7 +31,7 @@ public class ClientMonitor {
 			String data = "123456:\r\n";
 			out.writeChar(0x2497);
 			out.writeChar(0x01);
-			out.write(data.length());
+			out.writeInt(data.length());
 			out.writeBytes(data);
 
 			//接收来自服务端的数据

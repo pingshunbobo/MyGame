@@ -6,19 +6,19 @@ public class Message {
 	char iden;
 	char type;
 	int length;
-	String text;
+	byte[] content = new byte[1024];
 	
-	public void SetIden(char iden){
-		this.iden = iden;
+	public void SetIden(char id){
+		iden = id;
 	}
 	
 	public void SetType(char tp){
-		this.type = tp;
+		type = tp;
 	}
 	
 	public void SetText(String str){
-		this.length = str.length();
-		this.text = str;
+		length = str.length();
+		content = str.getBytes();
 	}
 	
 	public ByteBuffer dump(){
@@ -26,7 +26,7 @@ public class Message {
 		buf.putChar(iden);
 		buf.putChar(type);
 		buf.putInt(length);
-		buf.put(text.getBytes());
+		buf.put(content);
 		return buf;
 	}
 }

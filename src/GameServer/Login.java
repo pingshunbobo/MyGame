@@ -6,6 +6,6 @@ package GameServer;
 public class Login {
 	public static boolean check(Message msg){
 		
-		return true;
+		return false;
 	}
 }
