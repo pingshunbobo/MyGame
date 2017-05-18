@@ -27,7 +27,12 @@ public class ClientMonitor {
 			OutputStream outToServer = connsocket.getOutputStream();
 			DataOutputStream out =
 					new DataOutputStream(outToServer);
-			out.writeBytes( "L:12345:123456:\r\n");
+
+			String data = "123456:\r\n";
+			out.writeChar(0x2497);
+			out.writeChar(0x01);
+			out.write(data.length());
+			out.writeBytes(data);
 
 			//接收来自服务端的数据
 			InputStream inFromServer = connsocket.getInputStream();
