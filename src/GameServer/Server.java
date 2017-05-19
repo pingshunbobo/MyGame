@@ -90,19 +90,19 @@ public class Server {
 				    
 				    ReadRegister(newConn.sc);
 				    
-				    Debug_out("New connect!");
+				    DebugOut("New connect!");
 				    
 				} else if (key.isWritable()) {
-					Debug_out("New Write event!");
+					DebugOut("New Write event!");
 					WriteProcess(FindConn(key));
 					
 				} else if (key.isReadable()) {
-					Debug_out("New Read event!");
+					DebugOut("New Read event!");
 					
 					ReadProcess(FindConn(key));
 					
 				} else{
-					Debug_out("Unknow event happend!");
+					DebugOut("Unknow event happend!");
 				}
 				keyIterator.remove();
 			}
@@ -140,7 +140,7 @@ public class Server {
 	}
 	
     static void NoticeWorkThread(Conn Conn){
-    	Debug_out("Notice event!");
+    	DebugOut("Notice event!");
     	//加入处理队列,交由线程池处理。
 		synchronized(ConnProcessQueue){
 			ConnProcessQueue.offer(Conn);
@@ -169,11 +169,11 @@ public class Server {
 			ClearRegister(ioconn.sc);
 			NoticeWorkThread(ioconn);
 		} else if(ret < 0){
-			Debug_out("Read error, Close socket!");
+			DebugOut("Read error, Close socket!");
 			CloseProcess(ioconn);
 		}else{
 			//可能是缓冲区满。
-			Debug_out("buf reamain: " + ioconn.bufin.remaining());
+			DebugOut("buf reamain: " + ioconn.bufin.remaining());
 		}
     }
     
@@ -230,7 +230,7 @@ public class Server {
 			sc.keyFor(Server.selector).cancel();
 	}
 	
-	public static void Debug_out(String str){
+	public static void DebugOut(String str){
 		if(Server.debug > 0)
 			System.out.println(str);
 	}

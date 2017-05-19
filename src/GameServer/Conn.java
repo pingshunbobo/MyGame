@@ -17,9 +17,9 @@ public class Conn {
 	SocketAddress sa = null;
 	ByteBuffer bufin = null;
 	ByteBuffer bufout = null;
-	ConnStatus status = null;
 
-	Message msg = null;
+	Message inmsg = null;
+	Message outmsg = null;
 	GameUser user = null;
 	
 	//初始化一个连接结构。
@@ -27,8 +27,6 @@ public class Conn {
 		sa = sock.getRemoteSocketAddress();
     	bufin = ByteBuffer.allocate(1024);
     	bufout = ByteBuffer.allocate(1024);
-    	
-    	status = ConnStatus.READING;
     	
     	try {
         	this.sc = sock.getChannel();
@@ -46,8 +44,9 @@ public class Conn {
 		
 		try {
 			ReadBytes = this.sc.read(buf);
+			System.out.println(buf.toString());
 		} catch (IOException e) {
-			Server.Debug_out(e.toString());
+			Server.DebugOut(e.toString());
 		}
 		
 		return ReadBytes;
@@ -63,7 +62,7 @@ public class Conn {
     		try {
     			bytewrites = this.sc.write(buf);
     		} catch (IOException e) {
-    			Server.Debug_out(e.toString());
+    			Server.DebugOut(e.toString());
     		}
     	}
 		buf.clear();
@@ -79,9 +78,5 @@ public class Conn {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-	}
-	
-	private enum ConnStatus{
-		READING,PROCESSING,WRITEING,ERROR
 	}
 }
